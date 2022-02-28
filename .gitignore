@@ -1,0 +1,11 @@
+*.pkl
+.base/
+.devcontainer/
+.env
+.vscode/
+__pycache__/
+*.mp4
+.mounts/
+emily-config.json
+evaluation/
+docker-compose.yml
