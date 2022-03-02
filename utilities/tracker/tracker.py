@@ -13,7 +13,7 @@ class Tracker:
     def __init__(self, frame_width, frame_height) -> None:
         self.active_track_list = []
         self.latest_id = 0
-        self.similarity_threshold =  0.085 # now it is dist threshold, 0.95
+        self.similarity_threshold = 1.3
         self.frame_numb_threshold = 10
         # Maybe put to another class "base_tracker_class"
         self.df = pd.DataFrame(

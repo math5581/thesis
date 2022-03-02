@@ -16,7 +16,7 @@ metric = 'euclidian'  # cosine
 metric_to_extract = eucledian_distance
 
 
-bbox_amp = 10
+bbox_amp = None
 pca_model = None
 
 

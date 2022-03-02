@@ -86,6 +86,7 @@ def tracking_w_bbox():
         # Calculates the feature representation of each detection
         feature_list = feature_extraction.get_feature_description(
             frame_list, bbox_list)
+
         # print(feature_list)
         tracker.update_tracks(feature_list, bbox_list)
         frame = tracker.draw_active_tracks_on_frame(frame)
@@ -95,7 +96,7 @@ def tracking_w_bbox():
         dataloader.next_frame()
     # save in
     path = os.path.join(tracker_base_path,
-                        str(DIMENSIONS[0]) + 'onlybboxa1', 'data')
+                        str(DIMENSIONS[0]), 'data')
     try:
         os.makedirs(path, exist_ok=False)
     except:

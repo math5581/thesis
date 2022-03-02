@@ -8,7 +8,7 @@ from utilities.utilities import *
 import matplotlib.pyplot as plt
 
 # Specify_params here:
-DIMENSIONS = (448, 448)
+DIMENSIONS = (224, 224)
 # possibly expand with sequences
 SEQUENCE = '/workspace/data/MOT17/train/MOT17-02-DPM'
 metric = 'euclidian'  # cosine
@@ -184,7 +184,7 @@ def visualize_blur(path):
 
 
 if __name__ == '__main__':
-    extract_similarity_gt_location_different_roi()
+    # extract_similarity_gt_location_different_roi()
     extract_similarity_not_gt()
     extract_similarity_gt()
     sim_vec_gt = np.asarray(load_similarity_vector(
@@ -199,7 +199,7 @@ if __name__ == '__main__':
         'sim_avg_not_gt_' + str(DIMENSIONS[0]) + '.pkl'))
     print('mean ', np.mean(sim_vec_avg), ' std ', np.std(sim_vec_avg))
 
-    sim_vec_gt_new_roi = np.asarray(load_similarity_vector(
-        'sim_gt_' + str(DIMENSIONS[0]) + '_new_roi.pkl'))
-    print('mean ', np.mean(sim_vec_gt_new_roi),
-        ' std ', np.std(sim_vec_gt_new_roi))
+    #sim_vec_gt_new_roi = np.asarray(load_similarity_vector(
+    #    'sim_gt_' + str(DIMENSIONS[0]) + '_new_roi.pkl'))
+    #print('mean ', np.mean(sim_vec_gt_new_roi),
+    #    ' std ', np.std(sim_vec_gt_new_roi))
