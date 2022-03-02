@@ -1,6 +1,5 @@
 import os
 import numpy as np
-import tensorflow
 import cv2
 from utilities.utilities import list_file_paths_in_dir
 import pandas as pd
@@ -37,6 +36,9 @@ class MOTDataloader():
             print('max frames reached')
             return False
 
+    def get_dimensions(self):
+        return int(self.config['Sequence']['imWidth']), int(self.config['Sequence']['imHeight'])
+
     def prev_frame(self):
         if self._current_frame_id <= 1:
             print('at starting frame ')
@@ -50,6 +52,10 @@ class MOTDataloader():
 
     def get_current_frame_id(self):
         return self._current_frame_id
+
+    def set_current_frame_id(self, id):
+        if id <= self.get_seuqence_length():
+            self._current_frame_id = id
 
     def get_current_frame(self):
         # corresponds to -1 in files list

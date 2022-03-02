@@ -9,3 +9,5 @@ __pycache__/
 emily-config.json
 evaluation/
 docker-compose.yml
+imgs/
+*.DS_Store
