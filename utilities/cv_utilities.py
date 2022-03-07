@@ -18,9 +18,10 @@ def int_or_0(val):
 
 
 class CVTools:
-    def __init__(self, DIM, KERNEL_SIZE=(31, 31)):
+    def __init__(self, DIM, KERNEL_SIZE=(15, 15), std_blur=5):
         self._DIMENSIONS = DIM
         self._KERNEL_SIZE = KERNEL_SIZE
+        self.std_blur = std_blur
         self._blur_method = self.gaussian_blur  # Default
         self._frame = None
         self._frame_full = None
@@ -58,6 +59,19 @@ class CVTools:
         blured_frame[bbox[1]: bbox[1] + bbox[3],
                      bbox[0]: bbox[0] + bbox[2]] = roi
         return blured_frame
+
+    def black_image_list_except_bbox(self, bbox_list):
+        return [self.black_image_except_bbox(bbox) for bbox in bbox_list]
+
+    def black_image_except_bbox(self, bbox):
+        """ Returns blurred frame except bbox """
+        frame = self._frame.copy()
+        bbox = self.get_int_bbox(bbox, self._DIMENSIONS)
+        roi = self.crop_bounding_box(bbox, frame)
+        black_frame = np.zeros(self._DIMENSIONS + (3,), np.uint8)
+        black_frame[bbox[1]: bbox[1] + bbox[3],
+                    bbox[0]: bbox[0] + bbox[2]] = roi
+        return black_frame
 
     def blur_image_except_bbox_black(self, bbox):
         """ Returns blurred frame except black bbox """
@@ -98,7 +112,7 @@ class CVTools:
 
     # Blurring Methods
     def gaussian_blur(self, frame, kernel_size):
-        return cv2.GaussianBlur(frame, kernel_size, 0)
+        return cv2.GaussianBlur(frame, kernel_size, self.std_blur)
 
     def convolution_blurring(self, frame, kernel_size, param=25):  # Not used yet
         kernel = np.ones(kernel_size, np.float32) / param

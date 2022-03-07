@@ -13,8 +13,8 @@ class Tracker:
     def __init__(self, frame_width, frame_height) -> None:
         self.active_track_list = []
         self.latest_id = 0
-        self.similarity_threshold = 1.3
-        self.frame_numb_threshold = 10
+        self.similarity_threshold = 0.050
+        self.frame_numb_threshold = 20
         # Maybe put to another class "base_tracker_class"
         self.df = pd.DataFrame(
             data=None, columns=["frame", "id", "bb_left", "bb_top", "bb_width", "bb_height", "conf", "x", "y", "z"])
@@ -52,10 +52,11 @@ class Tracker:
         self.latest_id += 1
         return self.latest_id - 1
 
-    def istantiate_track(self, feature_vec, det):
+    def istantiate_track(self, feature_vec, det, bbox_feat_vec=None):
         """ Istantiates a track """
         assigned_id = self.get_available_id()
-        self.active_track_list.append(track(assigned_id, feature_vec, det))
+        self.active_track_list.append(
+            track(assigned_id, feature_vec, det, bbox_feat_vec))
 
     def update_tracks(self, det_vec_list, det_list):
         self.increment_track_time()
@@ -79,6 +80,70 @@ class Tracker:
         else:
             for i in range(len(det_vec_list)):
                 self.istantiate_track(det_vec_list[i], det_list[i])
+        self.remove_tracks()
+
+    def perform_association(self, det_feat_list, track_vec_list, threshold):
+        indexes, m = self.associate_hungarian_algorithm(
+            det_feat_list, track_vec_list)
+
+        pair_list = []
+        unassigned_det_ids = []
+        unassigned_track_ids = []
+        for i in range(len(indexes)):
+            det_id, track_id = indexes[i]
+            sim = m[det_id][track_id]
+            # there is a problem here or something...
+            # Update if similarity is good enough
+            if sim < threshold:
+                pair_list.append((det_id, track_id))
+                continue
+            # Append to unassigned lists assigned afterwards.
+            if det_id < len(det_feat_list):
+                unassigned_det_ids.append(det_id)
+            if track_id < len(self.active_track_list):
+                unassigned_track_ids.append(track_id)
+        return pair_list, unassigned_det_ids, unassigned_track_ids
+
+    def update_tracks_combined(self, det_vec_list, bbox_feat_list, bbox_list):
+        self.increment_track_time()
+        if len(self.active_track_list):
+            id_list, track_global_list = self.get_feature_vectors_from_tracks()
+            id_list, track_local_list = self.get_local_feature_vectors_from_tracks()
+
+            # Global update
+            ## Need some prediction on this in order to perform reasonably
+            pair_list, unassigned_det_ids, unassigned_track_ids = self.perform_association(
+                det_vec_list, track_global_list, 1.5)
+            for det_id, track_id in pair_list:
+                if det_id < len(det_vec_list) and track_id < len(self.active_track_list):
+                    self.active_track_list[track_id].update_track(
+                        det_vec_list[det_id], bbox_list[det_id], bbox_feat_list[det_id])
+
+            # local update only if unassigned_det_ids is not empty "RE-IDS"
+            if len(unassigned_det_ids) != 0:
+                track_global_list = [track_global_list[id] for id in unassigned_track_ids]
+                track_local_list = [track_local_list[id] for id in unassigned_track_ids]
+
+                det_global_list = [det_vec_list[id] for id in unassigned_det_ids]
+                det_local_list = [bbox_feat_list[id] for id in unassigned_det_ids]
+
+                pair_list, unassigned_local_det_ids, unassigned_track_ids = self.perform_association(
+                    det_local_list, track_local_list, 3)
+
+                for det_id, track_id in pair_list:
+                    if det_id < len(det_vec_list) and track_id < len(self.active_track_list):
+                        self.active_track_list[track_id].update_track(
+                            det_vec_list[det_id], bbox_list[det_id], bbox_feat_list[det_id])
+
+                ids_istantiate = [unassigned_det_ids[id] for id in unassigned_local_det_ids]
+                print('istantiate: ', len(ids_istantiate))
+                for id in ids_istantiate:
+                    self.istantiate_track(det_vec_list[id], bbox_list[id], bbox_feat_list[id])
+                # Update time here and delete tracks
+        else:
+            for i in range(len(det_vec_list)):
+                self.istantiate_track(
+                    det_vec_list[i], bbox_list[i], bbox_feat_list[i])
         self.remove_tracks()
 
     def remove_tracks(self):
@@ -117,4 +182,14 @@ class Tracker:
             id_list.append(self.active_track_list[i].get_track_id())
             feature_list.append(
                 self.active_track_list[i].get_active_feature_vector())
+        return id_list, feature_list
+
+    def get_local_feature_vectors_from_tracks(self):
+        """ Returns feature list of track_ids and feature vectors for active tracks """
+        id_list = []
+        feature_list = []
+        for i in range(len(self.active_track_list)):
+            id_list.append(self.active_track_list[i].get_track_id())
+            feature_list.append(
+                self.active_track_list[i].get_active_local_feature_vector())
         return id_list, feature_list

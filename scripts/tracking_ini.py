@@ -1,36 +1,37 @@
-# Tracking start
-from feature_stuff import pca
-from utilities.MOT import *
-from utilities.cv_utilities import *
-from utilities.feature_extraction import *
-from utilities.utilities import *
-import matplotlib.pyplot as plt
-from utilities.tracker.tracker import *
-
-from TrackEval import trackeval
-from TrackEval.trackeval import utils
 import configparser
+from TrackEval.trackeval import utils
+from TrackEval import trackeval
+from utilities.tracker.tracker import *
+import matplotlib.pyplot as plt
+from utilities.utilities import *
+from utilities.feature_extraction import *
+from utilities.cv_utilities import *
+from utilities.MOT import *
+from feature_stuff import pca
+
+
+# This overwrites everything
 
 DIMENSIONS = (224, 224)
 base_path = '/workspace/data/MOT17/train/'
 tracker_base_path = '/workspace/evaluation/data/trackers/mot_challenge/MOT17-train/'
-SEQUENCE = 'MOT17-04-FRCNN'
+SEQUENCE = 'MOT17-02-FRCNN'
 
 pca_model = None
-bbox_amp = None
+bbox_amp = 0.25
 
 
 def tracking():
     dataloader = MOTDataloader(os.path.join(base_path, SEQUENCE))
     cv_tools = CVTools(DIMENSIONS)
     feature_extraction = FeatureDescription(
-        DIMENSIONS, pca_model=pca_model, bbox_amplification=None)
+        DIMENSIONS, bbox_amplification=bbox_amp)
     sequence_length = dataloader.get_seuqence_length()
     frame = dataloader.get_current_frame()
 
     tracker = Tracker(frame_width=frame.shape[1], frame_height=frame.shape[0])
     out = cv.VideoWriter(
-        'project.mp4', cv.VideoWriter_fourcc(*'MP4V'), 30, (frame.shape[1], frame.shape[0]))
+        'project.mp4', cv.VideoWriter_fourcc(*'MP4V'), 25, (frame.shape[1], frame.shape[0]))
 
     for i in range(sequence_length):
         print('i ', i, ' of ', sequence_length)
@@ -66,7 +67,7 @@ def tracking_w_bbox():
     dataloader = MOTDataloader(os.path.join(base_path, SEQUENCE))
     cv_tools = CVTools(DIMENSIONS)
     feature_extraction = FeatureDescription(
-        DIMENSIONS, pca_model=None, bbox_amplification=bbox_amp)
+        DIMENSIONS, bbox_amplification=bbox_amp)
     sequence_length = dataloader.get_seuqence_length()
     frame = dataloader.get_current_frame()
 
@@ -110,7 +111,7 @@ def tracking_combined():
     dataloader = MOTDataloader(os.path.join(base_path, SEQUENCE))
     cv_tools = CVTools(DIMENSIONS)
     feature_extraction = FeatureDescription(
-        DIMENSIONS, pca_model=None, bbox_amplification=bbox_amp)
+        DIMENSIONS, bbox_amplification=bbox_amp)
     sequence_length = dataloader.get_seuqence_length()
     frame = dataloader.get_current_frame()
 
@@ -129,9 +130,10 @@ def tracking_combined():
         frames = cv_tools.blur_image_list_except_bbox(bbox_list)
 
         # Calculates the feature representation of each detection
-        feature_list = feature_extraction.get_feature_description_combined(
+        frame_feature_list, bbox_feature_list = feature_extraction.get_feature_description_combined(
             frames=frames, bbox_list=bbox_list, bboxes=bboxes)
-        tracker.update_tracks(feature_list, bbox_list)
+        tracker.update_tracks_combined(
+            frame_feature_list, bbox_feature_list, bbox_list)
         frame = tracker.draw_active_tracks_on_frame(frame)
         # Get integration?
         tracker.add_existing_tracks_to_df(dataloader.get_current_frame_id())
@@ -139,7 +141,7 @@ def tracking_combined():
         dataloader.next_frame()
     # save in
     path = os.path.join(tracker_base_path,
-                        str(DIMENSIONS[0]) + 'combineda10', 'data')
+                        str(DIMENSIONS[0]), 'data')
     try:
         os.makedirs(path, exist_ok=False)
     except:
@@ -150,7 +152,7 @@ def tracking_combined():
 
 
 def evaluation(tracker=str(DIMENSIONS[0]), seq=SEQUENCE):
-    dataset = dataset_setup(tracker)
+    dataset = dataset_setup(tracker, seq)
     tracker = tracker_base_path + tracker
     metrics_list, metric_names = metric_setup()
 
@@ -168,10 +170,10 @@ def evaluation(tracker=str(DIMENSIONS[0]), seq=SEQUENCE):
     print('IDF1', result['Identity']['IDF1'])
 
 
-def dataset_setup(tracker):
+def dataset_setup(tracker, seq):
     # Not really useful, but a necessity
     default_dataset_config = trackeval.datasets.MotChallenge2DBox.get_default_dataset_config()
-    default_dataset_config['SEQ_INFO'] = {'MOT17-04-FRCNN': None}
+    default_dataset_config['SEQ_INFO'] = {seq: None}
     default_dataset_config['GT_FOLDER'] = '/workspace/evaluation/data/gt/mot_challenge'
     default_dataset_config['TRACKERS_FOLDER'] = '/workspace/evaluation/data/trackers/mot_challenge/'
     default_dataset_config['TRACKERS_TO_EVAL'] = [tracker]

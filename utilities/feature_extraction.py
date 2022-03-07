@@ -20,7 +20,7 @@ class DeepFeatureExtraction:
 
         out = tf.keras.layers.GlobalAveragePooling2D()(model.output)
         out = tf.keras.layers.Flatten()(out)
-        out = tf.keras.layers.Activation(tf.keras.activations.sigmoid)(out)
+        out = tf.keras.layers.Activation(tf.keras.activations.softmax)(out)
         self.model = tf.keras.Model(model.input, out)
         # print(self.model.summary())
 
@@ -44,14 +44,41 @@ class FeatureDescription(DeepFeatureExtraction):
     def __init__(self, DIMENSIONS, pca_model=None, bbox_amplification=None, combine=False):
         super().__init__(DIMENSIONS)
         """ Interface for the deep feature extraction """
-        """ Specify pca_model to use pca reduction """
+        """ Specify pca_model to use pca reduction DEPRECATED"""
         """ Specify amount of bbox_amplification to append bbox"""
+
         self.bbox_amplification = bbox_amplification
         if pca_model is not None:
             self.pca = pkl.load(open(pca_model, 'rb'))
         else:
             self.pca = None
         self.combine = combine
+
+    def feature_description_bbox_normalized(self, frames=None, bbox_list=None):
+        if np.asarray(frames).shape[0] > 1:  # Extract as batch
+            features = self.extract_features_batch(frames)
+        else:
+            features = self.extract_features(frames)
+        features = self.normalize_features(features, bbox_list)
+        # Append bbox_amp is specified and there is a bbox_list
+        if self.pca is not None:  # Deprecated
+            features = self.perform_pca_transform(features)
+        if (self.bbox_amplification and bbox_list) is not None:
+            temp_feat = []
+            for feature, bbox in zip(features, bbox_list):
+                bb = np.asarray([bbox[0], bbox[1], bbox[0] + bbox[2],
+                                 bbox[1] + bbox[3]]) * self.bbox_amplification  # bbox[:4]
+                temp_feat.append(np.append(feature, bb, axis=0))
+            features = np.asarray(temp_feat)
+        return features
+
+    def normalize_features(self, feature_list, bboxes):
+        """ Normalized with size of bbox """
+        new_feat_list = []
+        for feat, bbox in zip(feature_list, bboxes):
+            area = bbox[2] * bbox[3]
+            new_feat_list.append(np.asarray(feat) / area)
+        return new_feat_list
 
     def get_feature_description(self, frames=None, bbox_list=None):
         if np.asarray(frames).shape[0] > 1:  # Extract as batch
@@ -73,19 +100,13 @@ class FeatureDescription(DeepFeatureExtraction):
 
     def get_feature_description_combined(self, frames=None, bboxes=None, bbox_list=None, ):
         if np.asarray(frames).shape[0] > 1:  # Extract as batch
-            frame_features = self.extract_features_batch(frames)
+            features = self.extract_features_batch(frames)
             if bboxes is not None:  # Extract bounding boxes on top?
                 bbox_features = self.extract_features_batch(bboxes)
         else:
-            frame_features = self.extract_features(frames)
+            features = self.extract_features(frames)
             if bboxes is not None:
                 bbox_features = self.extract_features(bboxes)
-        features = []
-        if bboxes is not None:
-            for frame_feature, bbox_feature in zip(frame_features, bbox_features):
-                features.append(np.append(frame_feature, bbox_feature, axis=0))
-        else:
-            features = frame_features
 
         # Append bbox_amp is specified and there is a bbox_list
         if self.pca is not None:
@@ -97,7 +118,7 @@ class FeatureDescription(DeepFeatureExtraction):
                                  bbox[1] + bbox[3]]) * self.bbox_amplification  # bbox[:4]
                 temp_feat.append(np.append(feature, bb, axis=0))
             features = np.asarray(temp_feat)
-        return features
+        return features, bbox_features
 
     def perform_pca_transform(self, features):
         feature = np.asarray(features)
