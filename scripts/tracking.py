@@ -1,27 +1,28 @@
-import configparser
-from pyexpat import features
 from TrackEval.trackeval import utils
 from TrackEval import trackeval
-from utilities.tracker.tracker import *
+from utilities.tracker.tracker_combined import *
 #import matplotlib.pyplot as plt
 from utilities.utilities import *
 from utilities.feature_extraction import *
 from utilities.cv_utilities import *
 from utilities.MOT import *
-
+from utilities.superpoint_utils import SuperInterface
 
 # This overwrites everything
 save_vid = True
-DIMENSIONS = (480, 480)
 base_path = '/workspace/data/MOT17/train'
 
-SEQUENCES = ['MOT17-02-FRCNN', 'MOT17-04-FRCNN',
-             'MOT17-05-FRCNN', 'MOT17-13-FRCNN']
+SEQUENCES = ['MOT17-02-FRCNN',
+             # 'MOT17-04-FRCNN',
+             'MOT17-05-FRCNN', 
+             'MOT17-13-FRCNN']
 #            'MOT17-09-FRCNN', 'MOT17-10-FRCNN', 'MOT17-11-FRCNN','MOT17-13-FRCNN']
-SEQUENCES = ['MOT17-09-FRCNN', 'MOT17-10-FRCNN', 'MOT17-11-FRCNN']
+# SEQUENCES = ['MOT17-09-FRCNN', 'MOT17-10-FRCNN', 'MOT17-11-FRCNN']
 
-feature_extraction = FeatureDescription(DIMENSIONS)
+DIMENSIONS = (480, 480)
+# feature_extraction = FeatureDescription(DIMENSIONS)
 
+supper = SuperInterface((240, 480))
 
 def tracking_w_bbox(SEQUENCE):
     """ Current SOTA """
@@ -31,33 +32,29 @@ def tracking_w_bbox(SEQUENCE):
     sequence_length = dataloader.get_seuqence_length()
     frame = dataloader.get_current_frame()
 
-    tracker = Tracker(frame_width=frame.shape[1], frame_height=frame.shape[0])
+    tracker = Tracker(frame_width=frame.shape[1], frame_height=frame.shape[0], supper=supper)
     if save_vid:
         out = cv.VideoWriter(
             SEQUENCE+'.mp4', cv.VideoWriter_fourcc(*'MP4V'), 30, (frame.shape[1], frame.shape[0]))
 
     for i in range(sequence_length):
-        #print('i ', i, ' of ', sequence_length)
+        # print('i ', i, ' of ', sequence_length)
         frame = dataloader.get_current_frame()
-        # Get the set of current detections
-        # dataloader.get_current_gt_bbox_scale()
         bbox_list = dataloader.get_current_det_bbox_scale()
         cv_tools.set_active_frame(frame)
-        # bboxes = cv_tools.extract_bbox_from_list(bbox_list)
-        frame_list = cv_tools.black_image_list_except_bbox(bbox_list)
+        bboxes = cv_tools.extract_bbox_from_list(bbox_list)
 
-        # Calculates the feature representation of each detection
-        det_feat_arr = feature_extraction.get_detection_features(
-            frames=frame_list, bbox_list=bbox_list)
-        # Saves the extracted features and use them later on.
-        #feature_extraction.save_detection_features(det_feat_arr, '/workspace/data/MOT17/eff_M_21k_ft1k_black/',
-        #                                          SEQUENCE, dataloader.get_current_frame_id())
+        sup_desc_array = supper.get_description(bboxes, bbox_list)
 
-        #det_feat_arr = feature_extraction.load_detection_features('/workspace/data/MOT17/eff_M_21k_ft1k_blur_larger/',
-        #                                           SEQUENCE, dataloader.get_current_frame_id(), bbox_list)
-        # possibility to load here
+        # loading the feature descriptions here :)
+        des_feat_arr = FeatureDescription.load_detection_features('/workspace/data/MOT17/eff_M_21k_ft1k_black/',
+                                                   SEQUENCE, dataloader.get_current_frame_id(), bbox_list)
 
-        tracker.update_tracks(det_feat_arr)
+        # Adding the super point features.
+        for det1, det2 in zip(des_feat_arr, sup_desc_array):
+            det1.set_local_features(det2.get_local_features())
+
+        tracker.update_tracks(des_feat_arr)
         if save_vid:
             frame = tracker.draw_active_tracks_on_frame(frame)
         # Get integration?

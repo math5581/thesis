@@ -36,11 +36,10 @@ def extract_similarity_gt():
         cv_tools.set_active_frame(frame)
 
         bboxes = cv_tools.extract_bbox_from_list(bbox_list)
-        frames = cv_tools.blur_image_list_except_bbox(bbox_list)
 
         # Calculates the feature representation of each detection
-        features = feature_extraction.get_feature_description_combined(
-            frames=frames, bbox_list=bbox_list, bboxes=bboxes)
+        features = feature_extraction.get_feature_description(
+            bboxes)
         # Perform similarity between ground truths
         if "prev_id_list" in locals():
             for index, id in enumerate(id_list):
@@ -74,11 +73,10 @@ def extract_similarity_not_gt():
         cv_tools.set_active_frame(frame)
 
         bboxes = cv_tools.extract_bbox_from_list(bbox_list)
-        frames = cv_tools.blur_image_list_except_bbox(bbox_list)
 
         # Calculates the feature representation of each detection
-        features = feature_extraction.get_feature_description_combined(
-            frames=frames, bbox_list=bbox_list, bboxes=bboxes)
+        features = feature_extraction.get_feature_description(
+            bboxes)
         # Perform similarity between ground truths
         if "prev_id_list" in locals():
             for index, id in enumerate(id_list):
@@ -93,7 +91,7 @@ def extract_similarity_not_gt():
                     similarity_vector_avg.append(avg_sim)
                 # Max
                 similarity_vector_max.append(min(temp_similarity))
-
+                # Average
         prev_id_list = id_list
         prev_feature_list = features
         dataloader.next_frame()
@@ -118,8 +116,3 @@ if __name__ == '__main__':
     sim_vec_avg = np.asarray(load_similarity_vector(
         'sim_avg_not_gt_' + str(DIMENSIONS[0]) + '_bboxonly.pkl'))
     print('mean ', np.mean(sim_vec_avg), ' std ', np.std(sim_vec_avg))
-
-    # sim_vec_gt_new_roi = np.asarray(load_similarity_vector(
-    #    'sim_vec_gt_' + str(DIMENSIONS[0]) + '_new_roi.pkl'))
-    # print('mean ', np.mean(sim_vec_gt_new_roi),
-    #      ' std ', np.std(sim_vec_gt_new_roi))

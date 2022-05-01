@@ -60,6 +60,64 @@ class CVTools:
                      bbox[0]: bbox[0] + bbox[2]] = roi
         return blured_frame
 
+    # enlargens the bbox here. but with what?
+    def blur_image_list_except_bbox_large(self, bbox_list):
+        return [self.blur_image_except_bbox_large(bbox) for bbox in bbox_list]
+
+    def blur_image_except_bbox_large(self, bbox):
+        target_h = 0.5
+        """ Returns blurred frame except bbox """
+        if bbox[3] < target_h:
+            frame_full = self._frame_full.copy()
+            h, w, _ = frame_full.shape
+            bbox_full = self.get_int_bbox(bbox, (w, h))
+            roi_full = self.crop_bounding_box(bbox_full, frame_full)
+            # finding the new box:
+            w, h = self._DIMENSIONS
+            target_h_int = int(h * target_h)
+            target_w_int = int(target_h_int * bbox_full[2] / bbox_full[3])
+
+            bbox = self.get_int_bbox(bbox, self._DIMENSIONS)
+            # Finding offsets:
+            dx = int(bbox[0] + target_w_int / 2 - (bbox[0] + bbox[2] / 2))
+            dy = int(bbox[1] + target_h_int / 2 - (bbox[1] + bbox[3] / 2))
+
+            # handling for out of bounds.
+            if (bbox[1] - dy) < 0:
+                target_h_int += (bbox[1] - dy)
+                dy = 0
+
+            if (bbox[0] - dx) < 0:
+                # Change width
+                target_w_int += (bbox[0] - dx)
+                dx = 0
+
+            if bbox[1] + target_h_int - dy > self._DIMENSIONS[1]:
+                # Shrink height
+                target_h_int = - (bbox[1] - dy - self._DIMENSIONS[1])
+
+            if bbox[0] + target_w_int - dx > self._DIMENSIONS[0]:
+                # shrink width
+                target_w_int = - (bbox[0] - dx - self._DIMENSIONS[0])
+
+            # print(target_w_int, target_h_int)
+            #if target_w_int == 0 or target_h_int == 0:
+            #    return self._blured_frame.copy()
+
+            roi = cv2.resize(roi_full, (target_w_int, target_h_int))
+            blured_frame = self._blured_frame.copy()
+            blured_frame[bbox[1] - dy: bbox[1] + target_h_int - dy,
+                         bbox[0] - dx: bbox[0] + target_w_int - dx] = roi
+            return blured_frame
+        else:
+            frame = self._frame.copy()
+            bbox = self.get_int_bbox(bbox, self._DIMENSIONS)
+            roi = self.crop_bounding_box(bbox, frame)
+            blured_frame = self._blured_frame.copy()
+            blured_frame[bbox[1]: bbox[1] + bbox[3],
+                        bbox[0]: bbox[0] + bbox[2]] = roi
+        return blured_frame
+
     def black_image_list_except_bbox(self, bbox_list):
         return [self.black_image_except_bbox(bbox) for bbox in bbox_list]
 
@@ -71,6 +129,64 @@ class CVTools:
         black_frame = np.zeros(self._DIMENSIONS + (3,), np.uint8)
         black_frame[bbox[1]: bbox[1] + bbox[3],
                     bbox[0]: bbox[0] + bbox[2]] = roi
+        return black_frame
+    # enlargens the bbox here. but with what?
+
+    def black_image_list_except_bbox_large(self, bbox_list):
+        return [self.black_image_except_bbox_large(bbox) for bbox in bbox_list]
+
+    def black_image_except_bbox_large(self, bbox):
+        target_h = 0.5
+        """ Returns blurred frame except bbox """
+        if bbox[3] < target_h:
+            frame_full = self._frame_full.copy()
+            h, w, _ = frame_full.shape
+            bbox_full = self.get_int_bbox(bbox, (w, h))
+            roi_full = self.crop_bounding_box(bbox_full, frame_full)
+            # finding the new box:
+            w, h = self._DIMENSIONS
+            target_h_int = int(h * target_h)
+            target_w_int = int(target_h_int * bbox_full[2] / bbox_full[3])
+
+            bbox = self.get_int_bbox(bbox, self._DIMENSIONS)
+            # Finding offsets:
+            dx = int(bbox[0] + target_w_int / 2 - (bbox[0] + bbox[2] / 2))
+            dy = int(bbox[1] + target_h_int / 2 - (bbox[1] + bbox[3] / 2))
+
+            # handling for out of bounds.
+            if (bbox[1] - dy) < 0:
+                target_h_int += (bbox[1] - dy)
+                dy = 0
+
+            if (bbox[0] - dx) < 0:
+                # Change width
+                target_w_int += (bbox[0] - dx)
+                dx = 0
+
+            if bbox[1] + target_h_int - dy > self._DIMENSIONS[1]:
+                # Shrink height
+                target_h_int = - (bbox[1] - dy - self._DIMENSIONS[1])
+
+            if bbox[0] + target_w_int - dx > self._DIMENSIONS[0]:
+                # shrink width
+                target_w_int = - (bbox[0] - dx - self._DIMENSIONS[0])
+
+            # print(target_w_int, target_h_int)
+            #if target_w_int == 0 or target_h_int == 0:
+            #    return self._blured_frame.copy()
+
+            roi = cv2.resize(roi_full, (target_w_int, target_h_int))
+            black_frame = np.zeros(self._DIMENSIONS + (3,), np.uint8)
+            black_frame[bbox[1] - dy: bbox[1] + target_h_int - dy,
+                         bbox[0] - dx: bbox[0] + target_w_int - dx] = roi
+            return black_frame
+        else:
+            frame = self._frame.copy()
+            bbox = self.get_int_bbox(bbox, self._DIMENSIONS)
+            roi = self.crop_bounding_box(bbox, frame)
+            black_frame = np.zeros(self._DIMENSIONS + (3,), np.uint8)
+            black_frame[bbox[1]: bbox[1] + bbox[3],
+                        bbox[0]: bbox[0] + bbox[2]] = roi
         return black_frame
 
     def blur_image_except_bbox_black(self, bbox):
@@ -107,8 +223,23 @@ class CVTools:
         bbox = self.crop_bounding_box(bbox, frame)
         return cv2.resize(bbox, self._DIMENSIONS, interpolation=cv2.INTER_AREA)
 
-    def extract_bbox_from_list(self, bbox_list):
-        return [self.extract_bbox(bbox) for bbox in bbox_list]
+    def extract_bbox_full(self, bbox):
+        frame = self.get_current_frame_full()
+        bbox = self.get_int_bbox(bbox, (frame.shape[1], frame.shape[0]))
+        bbox = self.crop_bounding_box(bbox, frame)
+        return bbox
+
+
+    def extract_bbox_full_rotate(self, bbox):
+        return cv2.rotate(self.extract_bbox_full(bbox), cv2.ROTATE_90_COUNTERCLOCKWISE)
+
+    def extract_bbox_from_list(self, bbox_list, full = False, rotate = False):
+        if full and rotate: 
+            return [self.extract_bbox_full_rotate(bbox) for bbox in bbox_list]
+        elif full:
+            return [self.extract_bbox_full(bbox) for bbox in bbox_list]
+        else:
+            return [self.extract_bbox(bbox) for bbox in bbox_list]
 
     # Blurring Methods
     def gaussian_blur(self, frame, kernel_size):

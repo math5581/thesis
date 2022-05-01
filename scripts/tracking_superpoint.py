@@ -2,25 +2,28 @@ import configparser
 from pyexpat import features
 from TrackEval.trackeval import utils
 from TrackEval import trackeval
-from utilities.tracker.tracker import *
+from utilities.tracker.tracker_superpoint import *
 #import matplotlib.pyplot as plt
 from utilities.utilities import *
-from utilities.feature_extraction import *
 from utilities.cv_utilities import *
 from utilities.MOT import *
+from utilities.superpoint_utils import SuperInterface
 
 
 # This overwrites everything
 save_vid = True
-DIMENSIONS = (480, 480)
+DIMENSIONS = [240, 480]
 base_path = '/workspace/data/MOT17/train'
 
-SEQUENCES = ['MOT17-02-FRCNN', 'MOT17-04-FRCNN',
-             'MOT17-05-FRCNN', 'MOT17-13-FRCNN']
+SEQUE = ['MOT17-02-FRCNN', 
+             'MOT17-04-FRCNN',
+             'MOT17-05-FRCNN', 
+             'MOT17-13-FRCNN'
+             ]
 #            'MOT17-09-FRCNN', 'MOT17-10-FRCNN', 'MOT17-11-FRCNN','MOT17-13-FRCNN']
 SEQUENCES = ['MOT17-09-FRCNN', 'MOT17-10-FRCNN', 'MOT17-11-FRCNN']
 
-feature_extraction = FeatureDescription(DIMENSIONS)
+supper = SuperInterface(DIMENSIONS)
 
 
 def tracking_w_bbox(SEQUENCE):
@@ -31,40 +34,35 @@ def tracking_w_bbox(SEQUENCE):
     sequence_length = dataloader.get_seuqence_length()
     frame = dataloader.get_current_frame()
 
-    tracker = Tracker(frame_width=frame.shape[1], frame_height=frame.shape[0])
+    tracker = Tracker(supper, frame_width=frame.shape[1], frame_height=frame.shape[0])
     if save_vid:
         out = cv.VideoWriter(
             SEQUENCE+'.mp4', cv.VideoWriter_fourcc(*'MP4V'), 30, (frame.shape[1], frame.shape[0]))
 
     for i in range(sequence_length):
+        if SEQUENCE == 'MOT17-09-FRCNN':
+            start= time.time()
         #print('i ', i, ' of ', sequence_length)
         frame = dataloader.get_current_frame()
         # Get the set of current detections
         # dataloader.get_current_gt_bbox_scale()
         bbox_list = dataloader.get_current_det_bbox_scale()
         cv_tools.set_active_frame(frame)
-        # bboxes = cv_tools.extract_bbox_from_list(bbox_list)
-        frame_list = cv_tools.black_image_list_except_bbox(bbox_list)
+        bboxes = cv_tools.extract_bbox_from_list(bbox_list, full=True, rotate=False)
 
-        # Calculates the feature representation of each detection
-        det_feat_arr = feature_extraction.get_detection_features(
-            frames=frame_list, bbox_list=bbox_list)
-        # Saves the extracted features and use them later on.
-        #feature_extraction.save_detection_features(det_feat_arr, '/workspace/data/MOT17/eff_M_21k_ft1k_black/',
-        #                                          SEQUENCE, dataloader.get_current_frame_id())
+        description_array = supper.get_description(bboxes, bbox_list)
 
-        #det_feat_arr = feature_extraction.load_detection_features('/workspace/data/MOT17/eff_M_21k_ft1k_blur_larger/',
-        #                                           SEQUENCE, dataloader.get_current_frame_id(), bbox_list)
-        # possibility to load here
-
-        tracker.update_tracks(det_feat_arr)
+        tracker.update_tracks(description_array)
         if save_vid:
             frame = tracker.draw_active_tracks_on_frame(frame)
+        
         # Get integration?
         tracker.add_existing_tracks_to_df(dataloader.get_current_frame_id())
         if save_vid:
             out.write(frame)
         dataloader.next_frame()
+        if SEQUENCE == 'MOT17-09-FRCNN':
+            print(time.time()-start)
     # save in
     path = os.path.join(base_path, 'trackers',
                         str(DIMENSIONS[0]), 'data')
