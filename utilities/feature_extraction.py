@@ -2,7 +2,7 @@ import tensorflow as tf
 import numpy as np
 import pickle as pkl
 from utilities.utilities import *
-from utilities.description import Description
+from utilities.description_sup import Description
 import tensorflow_hub as hub
 import os
 from tensorflow.keras import layers, Model
@@ -30,20 +30,11 @@ class DeepFeatureExtraction:
         #print(self.model.summary())
 
         self.model = tf.keras.Sequential([
-            hub.KerasLayer("https://tfhub.dev/google/imagenet/efficientnet_v2_imagenet21k_ft1k_m/feature_vector/2",
+            hub.KerasLayer("https://tfhub.dev/google/imagenet/efficientnet_v2_imagenet21k_ft1k_s/feature_vector/2",
                     trainable=False)
             #tf.keras.layers.Dense(num_classes, activation='softmax')
         ])
         self.model.build([None, DIMENSIONS[0], DIMENSIONS[1], 3])  # Batch input shape.
-
-        #model = tf.keras.applications.efficientnet_v2.EfficientNetV2M(input_shape=DIMENSIONS + (3,),  include_top=False,
-        #                                               weights='imagenet', include_preprocessing=True)
-
-        #out = tf.keras.layers.GlobalAveragePooling2D()(model.output)
-        #out = tf.keras.layers.Flatten()(out)
-        # out = tf.keras.layers.Activation(tf.keras.activations.sigmoid)(out)
-        #self.model = tf.keras.Model(model.input, out)
-        # print(self.model.summary())
         
         # FOR THE NORMAL STUFF...
         #self.model = tf.keras.Sequential([
@@ -143,7 +134,9 @@ class FeatureDescription(DeepFeatureExtraction):
             #    features.append(self.extract_features(frame))
             #features = np.squeeze(features)
             #print(features.shape)
+        #now = time.time()
         features = self.extract_features_batch(frames)
+        #print((time.time()-now)/features.shape[0])
         #features = []
         #for frame in frames:
         #    features.append(self.extract_features(frame))
@@ -157,12 +150,12 @@ class FeatureDescription(DeepFeatureExtraction):
 
         description_arr = []
         for feature, bbox in zip(features, bbox_list):
-            description_arr.append(Description(bbox, feature))
+            description_arr.append(Description(bbox, global_feat=feature))
         return description_arr
 
     def save_detection_features(self, det_features, folder, sequence, frame_number):
         # Change to save list of detection objects as pkl.
-        feat_vector = np.asarray([feat() for feat in det_features])
+        feat_vector = np.asarray([feat.get_glob_feat() for feat in det_features])
         path_out = os.path.join(folder, sequence)
         os.makedirs(path_out, exist_ok=True)
         out_file = os.path.join(path_out,  str(frame_number) + '.npy')
@@ -173,7 +166,7 @@ class FeatureDescription(DeepFeatureExtraction):
         # Change to load list of detction objects as pkl.
         file = os.path.join(folder, sequence,  str(frame_number) + '.npy')
         vectors = np.load(file)
-        return [Description(bbox, vec) for vec, bbox in zip(vectors, bbox_list)]
+        return [Description(bbox, global_feat=vec) for vec, bbox in zip(vectors, bbox_list)]
 
     def append_features(self, feats1, feats2):
         temp_feats = []

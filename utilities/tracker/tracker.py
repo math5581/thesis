@@ -63,7 +63,7 @@ class Tracker:
         """ Istantiates a track """
         assigned_id = self.get_available_id()
         self.active_track_list.append(
-            track(assigned_id, detection_array, supper = False))
+            track(assigned_id, detection_array))
 
     def return_min_idx(self, matrix):
         # Remove all the crappy error handling...
@@ -130,7 +130,7 @@ class Tracker:
         self.increment_track_time()
         if len(self.active_track_list):
             id_list, track_descriptions = self.get_feature_vectors_from_tracks()
-            det_descriptions = [description()
+            det_descriptions = [description.get_glob_feat()
                                 for description in detection_array]
             indexes, m = self.associate_hungarian_algorithm(
                 det_descriptions, track_descriptions)
@@ -141,7 +141,7 @@ class Tracker:
                 if (self.cosine_sim and sim > self.similarity_threshold) or (self.cosine_sim is not True and sim < self.similarity_threshold):
                     if det_id < len(detection_array) and track_id < len(self.active_track_list):
                         self.active_track_list[track_id].update_track(
-                            detection_array[det_id])
+                            detection_array[det_id], 0) # don't careabout sim_conf here
                 elif det_id < len(detection_array):  # Istantiate new track
                     self.istantiate_track(detection_array[det_id])
         else:
@@ -293,7 +293,7 @@ class Tracker:
         for i in range(len(self.active_track_list)):
             id_list.append(self.active_track_list[i].get_track_id())
             feature_list.append(
-                self.active_track_list[i]())
+                self.active_track_list[i].get_glob_feat())
         return id_list, feature_list
 
     def get_local_feature_vectors_from_tracks(self):

@@ -126,6 +126,7 @@ class CVTools:
         frame = self._frame.copy()
         bbox = self.get_int_bbox(bbox, self._DIMENSIONS)
         roi = self.crop_bounding_box(bbox, frame)
+        # print(roi.shape)
         black_frame = np.zeros(self._DIMENSIONS + (3,), np.uint8)
         black_frame[bbox[1]: bbox[1] + bbox[3],
                     bbox[0]: bbox[0] + bbox[2]] = roi

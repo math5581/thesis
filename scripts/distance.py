@@ -7,10 +7,10 @@ import matplotlib.pyplot as plt
 import tensorflow as tf
 
 # Specify_params here:
-DIMENSIONS = (224, 224)
+DIMENSIONS = (480, 480)
 # possibly expand with sequences
 base_path = '/workspace/data/MOT17/train/'
-SEQUENCES = ['MOT17-02-FRCNN', 
+SEQUENCES = ['MOT17-09-FRCNN', 
              # 'MOT17-04-FRCNN',
              'MOT17-05-FRCNN', 
             'MOT17-13-FRCNN']
@@ -28,7 +28,7 @@ def get_bbox_size(bb1, bb2):
     return bb1[2] * bb1[3] + bb2[2] * bb2[3]
 
 
-feature_extraction = FeatureDescription(DIMENSIONS)
+# feature_extraction = FeatureDescription(DIMENSIONS)
 
 
 def extract_similarity_gt(SEQUENCE):
@@ -46,15 +46,16 @@ def extract_similarity_gt(SEQUENCE):
     for i in range(sequence_length):
         # Try skipping every fifth?
         # print('i ', i, ' of ', sequence_length)
+        dataloader.set_current_frame_id(60)
         frame = dataloader.get_current_frame()
         bbox_list, id_list = dataloader.get_current_gt_bbox_scale()
         cv_tools.set_active_frame(frame)
         # print(id_list)
         # bboxes = cv_tools.extract_bbox_from_list(bbox_list)
-        frame_list = cv_tools.extract_bbox_from_list(bbox_list)
-        #for i, frame in enumerate(frame_list):
-        #    cv2.imwrite('test'+str(i)+'.png', frame)
-
+        frame_list = cv_tools.black_image_list_except_bbox_large(bbox_list)
+        for i, frame in enumerate(frame_list):
+            cv2.imwrite('img'+str(i)+'.png', frame)
+        exit()
         detection_array = feature_extraction.get_detection_features(
             frame_list, bbox_list=bbox_list)
         features = [description() for description in detection_array]
@@ -100,7 +101,7 @@ decimals = 5
 if __name__ == '__main__':
     for seq in SEQUENCES:
         print(seq)
-        # extract_similarity_gt(seq)
+        extract_similarity_gt(seq)
 
         sim_vec_gt = np.asarray(load_similarity_vector(seq + '_gt.pkl'))
         print('\mu ', np.around(np.mean(sim_vec_gt), decimals), ' \pm ', np.around(np.std(sim_vec_gt), decimals))

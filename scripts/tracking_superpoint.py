@@ -12,16 +12,17 @@ from utilities.superpoint_utils import SuperInterface
 
 # This overwrites everything
 save_vid = True
-DIMENSIONS = [240, 480]
+# Other scaling for pedestrians???
+DIMENSIONS = [60, 240]
 base_path = '/workspace/data/MOT17/train'
 
-SEQUE = ['MOT17-02-FRCNN', 
-             'MOT17-04-FRCNN',
-             'MOT17-05-FRCNN', 
-             'MOT17-13-FRCNN'
-             ]
-#            'MOT17-09-FRCNN', 'MOT17-10-FRCNN', 'MOT17-11-FRCNN','MOT17-13-FRCNN']
-SEQUENCES = ['MOT17-09-FRCNN', 'MOT17-10-FRCNN', 'MOT17-11-FRCNN']
+SEQUENCES = [#'MOT17-02-FRCNN',] 
+             # 'MOT17-04-FRCNN',
+             #'MOT17-05-FRCNN',]
+             'MOT17-13-FRCNN',]
+             #'MOT17-09-FRCNN', 
+             #'MOT17-10-FRCNN', 
+             #'MOT17-11-FRCNN']
 
 supper = SuperInterface(DIMENSIONS)
 
@@ -29,40 +30,40 @@ supper = SuperInterface(DIMENSIONS)
 def tracking_w_bbox(SEQUENCE):
     """ Current SOTA """
     dataloader = MOTDataloader(os.path.join(
-        base_path, SEQUENCE), zebrafish=False)
+        base_path, SEQUENCE), DET_THRESHOLD=0.5)
     cv_tools = CVTools(DIMENSIONS)
     sequence_length = dataloader.get_seuqence_length()
     frame = dataloader.get_current_frame()
 
-    tracker = Tracker(supper, frame_width=frame.shape[1], frame_height=frame.shape[0])
+    tracker = Tracker(supper, frame_width=frame.shape[1], frame_height=frame.shape[0], bbox_shape=DIMENSIONS)
     if save_vid:
         out = cv.VideoWriter(
             SEQUENCE+'.mp4', cv.VideoWriter_fourcc(*'MP4V'), 30, (frame.shape[1], frame.shape[0]))
 
     for i in range(sequence_length):
-        if SEQUENCE == 'MOT17-09-FRCNN':
-            start= time.time()
-        #print('i ', i, ' of ', sequence_length)
+        if SEQUENCE == 'MOT17-02-FRCNN':
+            # start= time.time()
+            print('i ', i, ' of ', sequence_length)
         frame = dataloader.get_current_frame()
         # Get the set of current detections
         # dataloader.get_current_gt_bbox_scale()
         bbox_list = dataloader.get_current_det_bbox_scale()
         cv_tools.set_active_frame(frame)
-        bboxes = cv_tools.extract_bbox_from_list(bbox_list, full=True, rotate=False)
+        bboxes = cv_tools.extract_bbox_from_list(bbox_list, full=True)
 
-        description_array = supper.get_description(bboxes, bbox_list)
+        description_array = supper.get_description(bboxes, bbox_list, frame.shape, DIMENSIONS)
 
         tracker.update_tracks(description_array)
-        if save_vid:
-            frame = tracker.draw_active_tracks_on_frame(frame)
-        
+        tracker.draw_keypoints_frame(frame)
+        frame = tracker.draw_active_tracks_on_frame(frame)
+        cv2.imwrite('test.png', frame)
+
         # Get integration?
         tracker.add_existing_tracks_to_df(dataloader.get_current_frame_id())
-        if save_vid:
-            out.write(frame)
         dataloader.next_frame()
-        if SEQUENCE == 'MOT17-09-FRCNN':
-            print(time.time()-start)
+
+    if save_vid:
+        tracker.save_video_file(out, dataloader)
     # save in
     path = os.path.join(base_path, 'trackers',
                         str(DIMENSIONS[0]), 'data')

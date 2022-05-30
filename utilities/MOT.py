@@ -11,7 +11,7 @@ import configparser
 
 
 class MOTDataloader():
-    def __init__(self, base_path, DET_THRESHOLD=0.5, zebrafish=False, mot_synth=False, gt_path=None, seq=None):
+    def __init__(self, base_path, DET_THRESHOLD=0.5, zebrafish=False, mot_synth=False, gt_path=None, seq=None, test=False):
         self.base_path = base_path
         self.zebrafish = zebrafish
         self.mot_synth = mot_synth
@@ -31,8 +31,8 @@ class MOTDataloader():
             self.config.read(os.path.join(gt_path, 'seqinfo.ini'))
         else:
             self.config.read(os.path.join(base_path, 'seqinfo.ini'))
-
-        self.gt_df = self.load_gt_file_as_pd()
+        if test is not True:
+            self.gt_df = self.load_gt_file_as_pd()
 
         self.occlusion_level = 0.5
         # Read detection and gt files

@@ -12,7 +12,7 @@ from utilities.MOT import *
 from utilities.cv_utilities import *
 from utilities.utilities import *
 from utilities.superpoint_utils import SuperInterface
-DIMENSIONS = [240, 480]
+DIMENSIONS = [60, 240]
 
 def get_bbox_center(bbox):
     return np.asarray([bbox[0]+bbox[2]/2, bbox[1]+bbox[3]/2, bbox[2], bbox[3]])
@@ -23,11 +23,15 @@ def get_distance(c1, c2):
 def get_numb_keypoints(pred):
     return pred['keypoints'][0].cpu().numpy().shape[0]
 
+def get_bbox_size(bb1, bb2):
+    return bb1[2] * bb1[3] + bb2[2] * bb2[3]
+
 base_path = '/workspace/data/MOT17/train/'
-SEQUENCES = ['MOT17-02-FRCNN', 
-             'MOT17-04-FRCNN',
-             'MOT17-05-FRCNN', 
-             'MOT17-13-FRCNN']
+SEQUENCES = [#'MOT17-02-FRCNN', 
+             #'MOT17-04-FRCNN',
+             #'MOT17-05-FRCNN', 
+             'MOT17-13-FRCNN'
+            ]
 
 supper = SuperInterface(DIMENSIONS)
 
@@ -40,47 +44,52 @@ def extract_super(SEQUENCE):
     nonmatch_keypoints = []
     nonmatch_keypoints_max = []
     match_keypoints = []
-    skipper = 30
+    skipper = 10
     sequence_length = dataloader.get_seuqence_length()
     ran = int(sequence_length/skipper)
     for i in range(ran):
         # Try skipping every fifth?
-        # print('i ', i*skipper, ' of ', sequence_length)
+        print('i ', i*skipper, ' of ', sequence_length)
         dataloader.set_current_frame_id(i*skipper)
         frame = dataloader.get_current_frame()
         bbox_list, id_list = dataloader.get_current_gt_bbox_scale()
         cv_tools.set_active_frame(frame)
         # print(id_list)
+        
         bboxes = cv_tools.extract_bbox_from_list(bbox_list, full=True)
-        #description_array = supper.get_description(bboxes, bbox_list)
+        description_array = supper.get_description(bboxes, bbox_list, frame.shape, DIMENSIONS)
         # print(len(features))
         # Perform similarity between ground truths
         if "prev_id_list" in locals():
             for index, id in enumerate(id_list):
+                #p = get_numb_keypoints(description_array[index].get_local_features())
+                #print(p)
                 temp_unmatch = []
                 for prev_index, prev_id in enumerate(prev_id_list):
                     if id[0]==prev_id[0]:
                         # Pair
-                        c1, c2 = get_bbox_center(bbox_list[index]), get_bbox_center(prev_bbox_list[prev_index])
-                        #p1, p2 = description_array[index](), prev_description_array[prev_index]()
+                        # c1, c2 = get_bbox_center(bbox_list[index]), get_bbox_center(prev_bbox_list[prev_index])
+                        p1, p2 = description_array[index](), prev_description_array[prev_index]()
+                        # n_keypoints = (get_numb_keypoints(p1)+get_numb_keypoints(p2))/2
+                        # print(n_keypoints)
                         # Matching
-                        dist = get_distance(c1,c2)
-                        # numb_matches, _ = supper(p1,p2)
-                        # sum_numb = np.sum(numb_matches)
-                        match_keypoints.append(dist)
+                        # dist = get_distance(c1,c2)
+                        numb_matches, _ = supper(p1,p2)
+                        match_keypoints.append(np.sum(numb_matches))
                     else:
                         #Non-pair
-                        c1, c2 = get_bbox_center(prev_bbox_list[prev_index]), get_bbox_center(bbox_list[index])
-                        #p1, p2 = description_array[index](), prev_description_array[prev_index]()
+                        # c1, c2 = get_bbox_center(prev_bbox_list[prev_index]), get_bbox_center(bbox_list[index])
+                        p1, p2 = description_array[index](), prev_description_array[prev_index]()
+                        # n_keypoints = (get_numb_keypoints(p1)+get_numb_keypoints(p2))/2
+                        
                         # Matching
-                        dist = get_distance(c1,c2)
-                        # numb_matches, _ = supper(p1,p2)
-                        # sum_numb = np.sum(numb_matches)
-                        temp_unmatch.append(dist)
+                        # dist = get_distance(c1,c2)
+                        numb_matches, _ = supper(p1,p2)
+                        temp_unmatch.append(np.sum(numb_matches))
                 if len(temp_unmatch) != 0:
-                    nonmatch_keypoints_max.append(min(temp_unmatch))
+                    nonmatch_keypoints_max.append(max(temp_unmatch))
                 nonmatch_keypoints += temp_unmatch
-        #prev_description_array = description_array   
+        prev_description_array = description_array   
         prev_bbox_list = bbox_list
         prev_id_list = id_list
         dataloader.next_frame()

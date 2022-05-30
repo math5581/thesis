@@ -4,7 +4,7 @@ import copy
 # Remove confidence from bbox!!
 
 class Description:
-    def __init__(self, bbox, global_features=None, local_features=None) -> None:
+    def __init__(self, bbox, global_features=None, local_features=None, frame_shape=None, bbox_shape=None) -> None:
         """ 5-Dim bounding box, with t,l,w,h,c 
             features 1280 description
             feature_bbox 1280 description """
@@ -29,8 +29,8 @@ class Description:
         # Little bad practice.
         self._bbox[:4] = bbox
 
-    def set_global_features(self, feat):
-        self._global_features = np.asarray(feat)
+    def set_global_features(self, feat): # No np.asarray for superpoint
+        self._global_features = feat # np.asarray(feat)
 
     def set_local_features(self, feat):
         self._local_features = feat
