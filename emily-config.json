@@ -1,0 +1,10 @@
+{
+    "id": "YPV0S8",
+    "name": "feature_extraction",
+    "containerName": "emily-feature_extraction-ypv0s8",
+    "image": "cuda-tf-cv",
+    "imageVersion": "1.0.0",
+    "mountTargets": [
+        "/workspace/data"
+    ]
+}
