@@ -9,11 +9,11 @@ This repository consists of scripts and frameworks used to develop, analyze and 
 `scripts/tracking.py` contains the script to run the tracker with evaluation. The tracker is implmented in `utilities/tracker/tracker_combined.py`
 
 ## Getting Started
-The code is implemented in the Emily v.1.8.0, which maintains a stable docker environment for development. To run the full project, install Emily https://github.com/amboltio/emily-cli (Release-V. 2.0.0 should be compatible).
+The code is implemented in the Emily v.1.8.0, which maintains a stable docker environment for development. To run the full project, install [Emily](https://github.com/amboltio/emily-cli) (Release-V. 2.0.0 should be compatible).
 - Run `emily open thesis` to run the project.
 
 ### Using SuperPoint
-Git clone the two repositories SuperPoint and SuperGlue inside the thesis 
+Git clone the two repositories from Magic Leap: [SuperPoint](https://github.com/magicleap/SuperPointPretrainedNetwork) and [SuperGlue](https://github.com/magicleap/SuperGluePretrainedNetwork) inside the thesis.
 
 ### Evaluation
 In order to evaluate, download the MOT17 sequences from the MOTChallenge,
