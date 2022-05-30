@@ -16,5 +16,5 @@ The code is implemented in the Emily v.1.8.0, which maintains a stable docker en
 Git clone the repositories from Magic Leap [SuperGlue](https://github.com/magicleap/SuperGluePretrainedNetwork) inside the `thesis`.
 
 ### Evaluation
-In order to evaluate the trackers, git clone the official evaluation repository [TrackEval](https://github.com/JonathonLuiten/TrackEval) inside the `thesis`.\n
+In order to evaluate the trackers, git clone the official evaluation repository [TrackEval](https://github.com/JonathonLuiten/TrackEval) inside the `thesis`.  
 Download the [MOT17 challenge](https://motchallenge.net/data/MOT17/) (or another desired) and setup the required paths in the tracking scripts.
