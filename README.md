@@ -10,4 +10,10 @@ This repository consists of scripts and frameworks used to develop, analyze and 
 
 ## Getting Started
 The code is implemented in the Emily v.1.8.0, which maintains a stable docker environment for development. To run the full project, install Emily https://github.com/amboltio/emily-cli (Release-V. 2.0.0 should be compatible).
-run `emily open thesis` to run the project.
+- Run `emily open thesis` to run the project.
+
+### Using SuperPoint
+Git clone the two repositories SuperPoint and SuperGlue inside the thesis 
+
+### Evaluation
+In order to evaluate, download the MOT17 sequences from the MOTChallenge,
