@@ -13,7 +13,7 @@ The code is implemented in the Emily v.1.8.0, which maintains a stable docker en
 - Run `emily open thesis` to run the project.
 
 ### Using SuperPoint
-Git clone the two repositories from Magic Leap: [SuperPoint](https://github.com/magicleap/SuperPointPretrainedNetwork) and [SuperGlue](https://github.com/magicleap/SuperGluePretrainedNetwork) inside the thesis.
+Git clone the two repositories from Magic Leap: [SuperPoint](https://github.com/magicleap/SuperPointPretrainedNetwork) and [SuperGlue](https://github.com/magicleap/SuperGluePretrainedNetwork) inside the `thesis`.
 
 ### Evaluation
 In order to evaluate, download the MOT17 sequences from the MOTChallenge,
